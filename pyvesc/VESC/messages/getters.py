@@ -28,7 +28,7 @@ class GetVersion(metaclass=VESCMessage):
     """
     id = VedderCmd.COMM_FW_VERSION
 
-    fields = [
+    recv_fields = [
             ('comm_fw_version', 'b', 0),
             ('fw_version_major', 'b', 0),
             ('fw_version_minor', 'b', 0)
@@ -43,12 +43,12 @@ class GetValues(metaclass=VESCMessage):
     """
     id = VedderCmd.COMM_GET_VALUES
 
-    fields = [
+    recv_fields = [
         ('temp_fet', 'h', 10),
         ('temp_motor', 'h', 10),
         ('avg_motor_current', 'i', 100),
         ('avg_input_current', 'i', 100),
-        ('avg_id', 'i', 100),
+    ('avg_id', 'i', 100),
         ('avg_iq', 'i', 100),
         ('duty_cycle_now', 'h', 1000),
         ('rpm', 'i', 1),
@@ -74,6 +74,6 @@ class GetRotorPosition(metaclass=VESCMessage):
     """
     id = VedderCmd.COMM_ROTOR_POSITION
 
-    fields = [
+    recv_fields = [
             ('rotor_pos', 'i', 100000)
     ]

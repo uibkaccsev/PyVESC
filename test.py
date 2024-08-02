@@ -218,7 +218,7 @@ class TestMsg(TestCase):
         payload_bytestring = VESCMessage.pack(msg)
         parsed_msg = VESCMessage.unpack(payload_bytestring)
         self.assertEqual(parsed_msg.id, msg.id)
-        for name in [names[0] for names in msg.fields]:
+        for name in [names[0] for names in msg.send_fields]:
             self.assertEqual(getattr(parsed_msg, name), getattr(msg, name))
 
     def test_single_message(self):
@@ -226,7 +226,7 @@ class TestMsg(TestCase):
 
         class TestMsg1(metaclass=VESCMessage):
             id = 0x12
-            fields = [
+            send_fields = [
                 ('f1', 'B'),
                 ('f2', 'H'),
                 ('f3', 'i'),
@@ -243,7 +243,7 @@ class TestMsg(TestCase):
 
         class testMsg1(metaclass=VESCMessage):
             id = 0x45
-            fields = [
+            send_fields = [
                 ('f1', 'B'),
                 ('f2', 'H'),
                 ('f3', 'i'),
@@ -254,21 +254,21 @@ class TestMsg(TestCase):
 
         class testMsg2(metaclass=VESCMessage):
             id = 0x19
-            fields = [
+            send_fields = [
                 ('f1', 'B'),
                 ('f2', 'B'),
             ]
 
         class testMsg3(metaclass=VESCMessage):
             id = 0x11
-            fields = [
+            send_fields = [
                 ('f1', 'i'),
                 ('f2', 'i'),
             ]
 
         class testMsg4(metaclass=VESCMessage):
             id = 0x24
-            fields = [
+            send_fields = [
                 ('f1', 'i'),
                 ('f2', 's'),
                 ('f3', 'i'),
@@ -293,16 +293,16 @@ class TestMsg(TestCase):
 
         # try to make two messages with the same ID
         class testMsg1(metaclass=VESCMessage):
-            id = 0x01
-            fields = [
+            id = 0x99
+            send_fields = [
                 ('f1', 'H'),
                 ('f2', 'H'),
             ]
         caught = False
         try:
             class testMsg2(metaclass=VESCMessage):
-                id = 0x01
-                fields = [
+                id = 0x99
+                send_fields = [
                     ('f1', 'B'),
                     ('f2', 'B'),
                 ]
@@ -315,7 +315,7 @@ class TestMsg(TestCase):
         try:
             class testMsg4(testMsg1):
                 id = 0x01
-                fields = [
+                send_fields = [
                     ('f1', 'B'),
                     ('f2', 'B'),
                 ]
@@ -328,7 +328,7 @@ class TestMsg(TestCase):
         try:
             class testMsg7(metaclass=VESCMessage):
                 id = 0x02
-                fields = [
+                send_fields = [
                     ('f1', 's'),
                     ('f2', 's'),
                 ]
@@ -341,7 +341,7 @@ class TestMsg(TestCase):
         try:
             class testMsg8(metaclass=VESCMessage):
                 id = 0x31
-                fields = [
+                send_fields = [
                     ('f1', 'p'),
                 ]
         except TypeError as e:
@@ -371,17 +371,17 @@ class TestInterface(TestCase):
     def verify_encode_decode(self, msg):
         import pyvesc
         encoded = pyvesc.encode(msg)
-        decoded, consumed = pyvesc.decode(encoded)
+        decoded, consumed, payload_total = pyvesc.decode(encoded)
         self.assertEqual(consumed, len(encoded))
-        for field in msg._field_names:
+        for field in msg._send_field_names:
             self.assertEqual(getattr(msg, field), getattr(decoded, field))
 
     def test_interface(self):
-        from pyvesc.VESCMotor.messages import VESCMessage
+        from pyvesc.VESC.messages import VESCMessage
 
         class testMsg1(metaclass=VESCMessage):
             id = 0x45
-            fields = [
+            send_fields = [
                 ('f1', 'B'),
                 ('f2', 'H'),
                 ('f3', 'i'),
@@ -392,21 +392,21 @@ class TestInterface(TestCase):
 
         class testMsg2(metaclass=VESCMessage):
             id = 0x19
-            fields = [
+            send_fields = [
                 ('f1', 'B'),
                 ('f2', 'B'),
             ]
 
         class testMsg3(metaclass=VESCMessage):
             id = 0x11
-            fields = [
+            send_fields = [
                 ('f1', 'i'),
                 ('f2', 'i'),
             ]
 
         class testMsg4(metaclass=VESCMessage):
             id = 0x24
-            fields = [
+            send_fields = [
                 ('f1', 'i'),
                 ('f2', 's'),
                 ('f3', 'i'),

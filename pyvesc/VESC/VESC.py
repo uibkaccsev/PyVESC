@@ -2,12 +2,17 @@ from pyvesc.protocol.interface import encode_request, encode, decode
 from pyvesc.VESC.messages import *
 import time
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 # because people may want to use this library for their own messaging, do not make this a required package
 try:
     import serial
 except ImportError:
     serial = None
+
+read_lock = threading.Lock()
 
 
 class VESC(object):
@@ -28,21 +33,25 @@ class VESC(object):
         if has_sensor:
             self.serial_port.write(encode(SetRotorPositionMode(SetRotorPositionMode.DISP_POS_OFF)))
 
+        messages = []  # list of messages that have been received
+
         self.heart_beat_thread = threading.Thread(target=self._heartbeat_cmd_func)
         self._stop_heartbeat = threading.Event()
 
         if start_heartbeat:
             self.start_heartbeat()
 
-        # check firmware version and set GetValue fields to old values if pre version 3.xx
-        version = self.get_firmware_version()
-        if int(version.split('.')[0]) < 3:
-            GetValues.fields = pre_v3_33_fields
+        self._message_monitor_thread = threading.Thread(target=self._message_monitor)
+
+        # thread to monitor messages to receive unscheduled prints from ESC for debugging, 
+        # currently disabled as it was interfering sometimes and is not needed
+        self._stop_message_monitor = threading.Event()
+        # self._message_monitor_thread.start()
 
         # store message info for getting values so it doesn't need to calculate it every time
         msg = GetValues()
         self._get_values_msg = encode_request(msg)
-        self._get_values_msg_expected_length = msg._full_msg_size
+        self._get_values_msg_expected_length = msg._recv_full_msg_size
 
     def __enter__(self):
         return self
@@ -53,13 +62,23 @@ class VESC(object):
             self.serial_port.flush()
             self.serial_port.close()
 
+    def _message_monitor(self):
+        """
+        A function that continuously reads the serial port for messages and decodes them.
+        """
+        while not self._stop_message_monitor.isSet():
+            ret = self.read(1, expect_string=True, expect_anything=False)
+            if ret is not None:
+                print(ret)
+            time.sleep(0.01)
+
     def _heartbeat_cmd_func(self):
         """
         Continuous function calling that keeps the motor alive
         """
         while not self._stop_heartbeat.isSet():
             time.sleep(0.1)
-            self.write(alive_msg)
+            res = self.write(alive_msg, is_heartbeat=True)
 
     def start_heartbeat(self):
         """
@@ -73,23 +92,117 @@ class VESC(object):
         SCOPE UNLESS WRAPPING IN A WITH STATEMENT (Assuming the heartbeat was started).
         """
         if self.heart_beat_thread.is_alive():
-            self._stop_heartbeat.set()
-            self.heart_beat_thread.join()
+            try:
+                self._stop_heartbeat.set()
+                self.heart_beat_thread.join()
+            except Exception as e:
+                logger.error("Error stopping heartbeat: {}".format(e))
 
-    def write(self, data, num_read_bytes=None):
+    def write(self, data, num_read_bytes=None, is_heartbeat=False, expect_string=False):
         """
         A write wrapper function implemented like this to try and make it easier to incorporate other communication
         methods than UART in the future.
         :param data: the byte string to be sent
         :param num_read_bytes: number of bytes to read for decoding response
+        :param is_heartbeat: whether or not this is a heartbeat message, can be used for filtering debug prints
+        :param expect_string: whether or not to expect a string response
+        :param expect_anything: whether or not to expect any response
         :return: decoded response from buffer
         """
-        self.serial_port.write(data)
+        try:
+            self.serial_port.write(data)
+        except Exception as e:
+            logging.error("Error writing to serial port: ", e)
+        if not is_heartbeat:
+            logging.debug("Data sent: {}".format(data))
         if num_read_bytes is not None:
-            while self.serial_port.in_waiting <= num_read_bytes:
-                time.sleep(0.000001)  # add some delay just to help the CPU
-            response, consumed = decode(self.serial_port.read(self.serial_port.in_waiting))
-            return response
+            return self.read(num_read_bytes, expect_string=expect_string)
+
+    def read(self, num_read_bytes, timeout=0.01, expect_string=False, expect_anything=True):
+        response = None
+        payload = b''
+        last_payload_len = 0
+        t_start = None
+        complete_timeout = 10  # timeout for a read regardless of if we have received anything
+
+        # allow more time for parsing string of unknown length
+        if expect_string:
+            timeout = 0.1
+
+        with read_lock:
+            complete_timeout_start = time.time()
+            while True:
+                time.sleep(0.01)
+
+                # first data received
+                if len(payload) > 0 and last_payload_len == 0 or len(payload) > 0 and t_start is None:
+                    t_start = time.time()
+
+                # if data stops for a long time
+                if last_payload_len == len(payload):
+                    #print("in waiting: ", self.serial_port.in_waiting)
+                    if t_start is not None:
+                        if time.time() - t_start > timeout:
+                            break
+
+                # read in data gradually to ensure buffer doesn't fill
+                try:
+                    payload += self.serial_port.read(self.serial_port.in_waiting)
+                except Exception as e:
+                    logging.error("Error reading from serial port: ", e)
+                last_payload_len = len(payload)
+
+                # if we are just probing the serial line, exit early as we are not waiting for a response
+                if len(payload) == 0 and not expect_anything:
+                    return None
+
+                # if we have a complete timeout
+                if time.time() - complete_timeout_start > complete_timeout:
+                    logging.info("Serial read timeout")
+                    break
+
+        response, consumed, msg_payload = decode(payload, recv=True)
+        logging.debug("Data response: {}".format(msg_payload))
+        return response
+
+    def update_firmware(self, firmware):
+
+        logging.info("Erasing")
+
+        erase_res = self.fw_erase_new_app(firmware.size)
+        if erase_res.erase_new_app_result != 1:
+            logging.error("Erase failed")
+            return
+
+        logging.info("Sending firmware")
+
+        offset = 0
+
+        while firmware.size > 0:
+            fw_chunk = firmware.get_next_chunk()
+
+            # check if the chunk is empty, don't send
+            has_data = False
+            for i in fw_chunk:
+                if i != 0xff:
+                    has_data = True
+                    break
+
+            if has_data:
+                fw_result = self.fw_write_new_app_data(offset, fw_chunk)
+
+                if fw_result.write_new_app_result != 1 or fw_result.write_new_app_result is None:
+                    logging.error("Write failed")
+                    logging.error(fw_result)
+                    return
+
+            offset += firmware.chunk_size
+
+            print("\rProgress: {:.2f}%, Size: {}kB, to be written to {}".format(firmware.get_progress(offset), offset, offset+firmware.chunk_size), end='\r')
+            firmware.clear_chunk()
+        logging.info("Firmware upload complete, jumping to bootloader.")
+        self.fw_jump_to_bootloader()
+
 
     def set_rpm(self, new_rpm):
         """
@@ -124,7 +237,7 @@ class VESC(object):
 
     def get_firmware_version(self):
         msg = GetVersion()
-        return str(self.write(encode_request(msg), num_read_bytes=msg._full_msg_size))
+        return self.write(encode_request(msg), num_read_bytes=msg._recv_full_msg_size)
 
     def get_rpm(self):
         """
@@ -156,6 +269,47 @@ class VESC(object):
         """
         return self.get_measurements().current_in
 
+    def fw_erase_new_app(self, fw_size):
+        """
+        Erase app data
+        """
+        # TODO: Revert this to actual fw size
+        msg = EraseNewApp(fw_size)
+        return self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size)
 
+    def reboot(self):
+        """
+        Reboot VESC
+        """
+        msg = Reboot()
+        return str(self.write(encode_request(msg), num_read_bytes=msg._recv_full_msg_size))
+
+    def fw_write_new_app_data(self, offset, data):
+        """
+        Write new app data
+        """
+        msg = WriteNewAppData(offset, data)
+        return self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size)
+
+    def fw_write_new_app_data_lzo(self, offset, data):
+        """
+        Write new app data
+        """
+        msg = WriteNewAppDataLZO(offset, data)
+        return self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size)
+
+    def fw_jump_to_bootloader(self):
+        """
+        Jump to bootloader
+        """
+        msg = JumpToBootloader()
+        return self.write(encode_request(msg), num_read_bytes=msg._recv_full_msg_size)
+
+    def send_terminal_cmd(self, cmd):
+        """
+        Send terminal command
+        """
+        msg = TerminalCmd(cmd)
+        return self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
 
 
