@@ -312,4 +312,11 @@ class VESC(object):
         msg = TerminalCmd(cmd)
         return self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
 
+    def get_motor_configuration(self):
+        """
+        Get the motor configuration parameters
+        """
+        msg = GetMotorConfig()
+        res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
+        return res
 

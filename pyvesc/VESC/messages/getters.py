@@ -38,6 +38,19 @@ class GetVersion(metaclass=VESCMessage):
         return f"{self.comm_fw_version}.{self.fw_version_major}.{self.fw_version_minor}"
 
 
+class GetMotorConfig(metaclass=VESCMessage):
+    """
+    Get the motor configuration values
+
+    Receives a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_GET_MCCONF
+
+    recv_fields = [
+            ('mcconf', 's', -1)
+    ]
+
+
 class GetValues(metaclass=VESCMessage):
     """ Gets internal sensor data
     """

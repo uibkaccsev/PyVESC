@@ -195,9 +195,17 @@ class VESCMessage(type):
         msg = msg_type(*data, unpack_send_fields=unpack_send_fields)
         if not (string_field is None):
             string_field_name = field_names[string_field]
-            setattr(msg,
+            
+            # if scalar is -1, we do not interpret the string as ascii, instead as a bytestring
+            if len(field_scalars) > 0 and field_scalars[string_field] is -1:
+                setattr(msg,
+                    string_field_name,
+                    getattr(msg, string_field_name))
+            else:
+                setattr(msg,
                     string_field_name,
                     getattr(msg, string_field_name).decode('ascii'))
+
         return msg
 
     @staticmethod

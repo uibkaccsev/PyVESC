@@ -74,6 +74,11 @@ def commands_example(port, firmware, compressed):
                 erase_res = motor.fw_erase_new_app(fw.size)
                 print("Erase status:", erase_res.erase_new_app_result)
 
+            if user_in == "gp":
+                print("Getting motor parameters")
+                mcconf_res = motor.get_motor_configuration()
+                print("Motor configuration: {}".format(mcconf_res))
+
             print(motor.send_terminal_cmd(user_in))
 
 

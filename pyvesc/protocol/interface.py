@@ -39,6 +39,7 @@ def decode(buffer, recv=True):
         # we use the first message to determine if there is a string field, they will all have the
         # same field data as they are just repeated messages
         string_field_name = None
+        string_field_scalar = None
 
         if recv:
             field = 'recv_fields'
@@ -47,15 +48,24 @@ def decode(buffer, recv=True):
         
         if hasattr(unpacked_messages[0], field):
             field_list = getattr(unpacked_messages[0], field)
-            for f in field_list:
+            for i,f in enumerate(field_list):
                 if 's' in f[1]:  # f1 is the formats (there is a '[send/recv]_field_formats attr, but cbf getting it)
                     # there is a string, get the field name
                     string_field_name = f[0]
+                    # if there is a scalar field
+                    if len(f) > 2:
+                        string_field_scalar = field_list[i][2]
+
 
         if string_field_name is not None:
-            message_res = "".join([getattr(unpacked_message, string_field_name)+"\n" for unpacked_message in unpacked_messages])
+            # check if string is an ascii or bytes by looking at the string scalar. -1 is bytestring, None is ascii
+            if string_field_scalar is None:
+                message_res = "".join([getattr(unpacked_message, string_field_name)+"\n" for unpacked_message in unpacked_messages])
+            elif string_field_scalar == -1:
+                message_res = b"".join([getattr(unpacked_message, string_field_name) for unpacked_message in unpacked_messages])
+
         else:
-            if len(unpacked_messages) is 1:
+            if len(unpacked_messages) == 1:
                 message_res = unpacked_messages[0]
             else:
                 raise ValueError("Don't currently support multiple message results from one field that aren't strings")
