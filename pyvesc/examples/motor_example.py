@@ -56,6 +56,10 @@ def commands_example(port, firmware, compressed):
         print("fw\t\t- update firmware")
         print("erase\t\t- erase firmware ")
         print("\n\nEntering Terminal:\n====================\n")
+        print("TODO: implement double auto serialisation")
+        print("TODO: implement param scaling if that's a thing?")
+        print("TODO: Update the param testing when we have serialisation")
+        print("\n\n")
 
         while True:
             # terminal console that reads in text on a newline, assigns it to the user_in string
@@ -73,11 +77,15 @@ def commands_example(port, firmware, compressed):
                 print("sending erase")
                 erase_res = motor.fw_erase_new_app(fw.size)
                 print("Erase status:", erase_res.erase_new_app_result)
+                break
 
             if user_in == "gp":
                 print("Getting motor parameters")
                 mcconf_res = motor.get_motor_configuration()
-                print("Motor configuration: {}".format(mcconf_res))
+                mcconf_res_formatted = confgenerator.confgenerator_deserialise_mcconf(bytearray(mcconf_res), None)
+                for param in mcconf_res_formatted:
+                    print(param)
+                break
 
             print(motor.send_terminal_cmd(user_in))
 

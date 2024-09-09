@@ -1,8 +1,10 @@
 from pyvesc.protocol.interface import encode_request, encode, decode
 from pyvesc.VESC.messages import *
+from pyvesc.VESC.params import confgenerator
 import time
 import threading
 import logging
+
 
 logger = logging.getLogger(__name__)
 
