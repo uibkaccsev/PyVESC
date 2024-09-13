@@ -159,9 +159,10 @@ class VESC(object):
                     return None
 
                 # if we have a complete timeout
-                if time.time() - complete_timeout_start > complete_timeout:
-                    logging.info("Serial read timeout")
-                    break
+                # todo: re-enable, turning this off for debugging
+                # if time.time() - complete_timeout_start > complete_timeout:
+                #     logging.info("Serial read timeout")
+                #     break
 
         response, consumed, msg_payload = decode(payload, recv=True)
         logging.debug("Data response: {}".format(msg_payload))
@@ -319,6 +320,30 @@ class VESC(object):
         Get the motor configuration parameters
         """
         msg = GetMotorConfig()
+        res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
+        return res
+    
+    def set_motor_configuration(self, data):
+        """
+        Set the motor configuration parameters
+        """
+        msg = SetMotorConfig(data)
+        res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
+        return res
+    
+    def get_app_configuration(self):
+        """
+        Get the app configuration parameters
+        """
+        msg = GetAppConfig()
+        res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
+        return res
+    
+    def set_app_configuration(self, data):
+        """
+        Set the app configuration parameters
+        """
+        msg = SetAppConfig(data)
         res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
         return res
 

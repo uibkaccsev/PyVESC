@@ -1,7 +1,11 @@
 from pyvesc import VESC, Firmware
+from pyvesc.VESC.params import confgenerator
+from pyvesc.VESC.params import *
 import time
 import logging
 import argparse
+import copy
+import json
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S', level=logging.INFO)
@@ -56,9 +60,6 @@ def commands_example(port, firmware, compressed):
         print("fw\t\t- update firmware")
         print("erase\t\t- erase firmware ")
         print("\n\nEntering Terminal:\n====================\n")
-        print("TODO: implement double auto serialisation")
-        print("TODO: implement param scaling if that's a thing?")
-        print("TODO: Update the param testing when we have serialisation")
         print("\n\n")
 
         while True:
@@ -79,15 +80,54 @@ def commands_example(port, firmware, compressed):
                 print("Erase status:", erase_res.erase_new_app_result)
                 break
 
-            if user_in == "gp":
-                print("Getting motor parameters")
-                mcconf_res = motor.get_motor_configuration()
-                mcconf_res_formatted = confgenerator.confgenerator_deserialise_mcconf(bytearray(mcconf_res), None)
-                for param in mcconf_res_formatted:
-                    print(param)
-                break
-
             print(motor.send_terminal_cmd(user_in))
+
+def save_parameters(serial_port, save_file):
+    with VESC(serial_port=serial_port) as motor:
+        motor_config_bytes = motor.get_motor_configuration()
+        app_config_bytes = motor.get_app_configuration()
+        mcconfig = confgenerator.confgenerator_deserialise_mcconf(bytearray(motor_config_bytes), None)
+        appconfig = confgenerator.confgenerator_deserialise_appconf(bytearray(app_config_bytes), None)
+
+        # convert to dictionary
+        # TODO: add datatype to the dictionary
+        mcconfig_dict = [{param.name: param.value} for param in mcconfig]
+        appconfig_dict = [{param.name: param.value} for param in appconfig]
+
+        output = {"mcconfig": mcconfig_dict, "appconfig": appconfig_dict}
+
+
+        # convert to json
+        config_json = json.dumps(output, indent=4)
+        print(config_json)
+
+
+        # save the parameters to a file
+        with open(save_file, 'wb') as f:
+            f.write(config_json.encode('utf-8'))
+
+def load_parameters(serial_port, load_file):
+    with VESC(serial_port=serial_port) as motor:
+        with open(load_file, 'rb') as f:
+            config_json = f.read()
+
+        config = json.loads(config_json)
+
+        mcconfig = []
+        for param in config['mcconfig']:
+            name, value = list(param.items())[0]
+            mcconfig.append(confgenerator.confgenerator_param_from_dict(name, value))
+
+        appconfig = []
+        for param in config['appconfig']:
+            name, value = list(param.items())[0]
+            appconfig.append(confgenerator.confgenerator_param_from_dict(name, value))
+
+        mcconfig_bytes = confgenerator.confgenerator_serialise_mcconf(mcconfig)
+        appconfig_bytes = confgenerator.confgenerator_serialise_appconf(appconfig)
+
+        motor.set_motor_configuration(mcconfig_bytes)
+        motor.set_app_configuration(appconfig_bytes)
 
 
 if __name__ == '__main__':
@@ -96,9 +136,17 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', type=str, help='Serial port', default='')
     parser.add_argument('-f', '--firmware', type=str, help='Firmware file', default=None)
     parser.add_argument('-c', '--compressed', action='store_true', help='Compressed firmware', default=True)
+    parser.add_argument('-s', '--save', type=str, help='Save parameters to file', default=None)
+    parser.add_argument('-l', '--load', type=str, help='Load parameters from file', default=None)
     args = parser.parse_args()
 
-    run_motor_using_with(args.port)
-    run_motor_as_object(args.port)
-    time_get_values(args.port)
+    if args.save:
+        save_parameters(serial_port = args.port, save_file=args.save)
+
+    if args.load:
+        load_parameters(serial_port = args.port, load_file=args.load)
+
+    #run_motor_using_with(args.port)
+    #run_motor_as_object(args.port)
+    #time_get_values(args.port)
     commands_example(args.port, args.firmware, args.compressed)

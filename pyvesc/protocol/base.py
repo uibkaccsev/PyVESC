@@ -238,8 +238,12 @@ class VESCMessage(type):
             for field_name in field_names:
                 field_values.append(getattr(instance, field_name))
         else:
-            for field_name, field_scalar in zip(field_names, field_scalars):
-                field_values.append(int(getattr(instance, field_name) * field_scalar))
+            for index, (field_name, field_scalar) in enumerate(zip(field_names, field_scalars)):
+                # if it's a string field, don't apply the scalar as it represents the format, not the data
+                if instance.send_fields[index][1] == 's':
+                    field_values.append(getattr(instance, field_name))
+                else:
+                    field_values.append(int(getattr(instance, field_name) * field_scalar))
         if not (string_field is None):
             # string field
             string_field_name = field_names[string_field]
@@ -248,7 +252,11 @@ class VESCMessage(type):
                 fmt_wo_string = field_formats.replace('%u', '')
                 fmt_wo_string = fmt_wo_string.replace('s', '')
             string_length = len(getattr(instance, string_field_name))
-            field_values[string_field] = field_values[string_field].encode('ascii')
+            # if scalar is -1, we do not interpret the string as ascii, instead as a bytestring
+            if len(field_scalars) > string_field and field_scalars[string_field] == -1:
+                field_values[string_field] = field_values[string_field]
+            else:
+                field_values[string_field] = field_values[string_field].encode('ascii')
             values = ((instance.id,) + tuple(field_values))
             if instance.can_id is not None:
                 fmt = VESCMessage._endian_fmt + VESCMessage._can_id_fmt + VESCMessage._id_fmt\

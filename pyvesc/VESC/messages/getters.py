@@ -50,6 +50,41 @@ class GetMotorConfig(metaclass=VESCMessage):
             ('mcconf', 's', -1)
     ]
 
+class SetMotorConfig(metaclass=VESCMessage):
+    """
+    Set the motor configuration values
+
+    Sends a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_SET_MCCONF
+
+    send_fields = [
+            ('mcconf', 's', -1)
+    ]
+class GetAppConfig(metaclass=VESCMessage):
+    """
+    Get the app configuration values
+
+    Receives a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_GET_APPCONF
+
+    recv_fields = [
+            ('appconf', 's', -1)
+    ]
+
+class SetAppConfig(metaclass=VESCMessage):
+    """
+    Set the app configuration values
+
+    Sends a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_SET_APPCONF
+
+    send_fields = [
+            ('appconf', 's', -1)
+    ]
+
 
 class GetValues(metaclass=VESCMessage):
     """ Gets internal sensor data
