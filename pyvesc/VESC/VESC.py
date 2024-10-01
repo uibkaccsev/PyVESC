@@ -181,6 +181,9 @@ class VESC(object):
 
         offset = 0
 
+        update_start_time = time.time()
+        time_since_last_progress_print = time.time()
+
         while firmware.size > 0:
             fw_chunk = firmware.get_next_chunk()
 
@@ -201,10 +204,20 @@ class VESC(object):
 
             offset += firmware.chunk_size
 
+            UPDATE_INTERVAL_SECS = 10
+            if time.time() - time_since_last_progress_print > UPDATE_INTERVAL_SECS:
+                time_since_last_progress_print = time.time()
+                logging.info("Progress: {:.2f}%, Size: {}/{}kB".format(firmware.get_progress(offset), offset, firmware.original_size))
+
+            # stream updates quickly to stdout 
             print("\rProgress: {:.2f}%, Size: {}kB, to be written to {}".format(firmware.get_progress(offset), offset, offset+firmware.chunk_size), end='\r')
             firmware.clear_chunk()
         logging.info("Firmware upload complete, jumping to bootloader.")
-        self.fw_jump_to_bootloader()
+        try:
+            self.fw_jump_to_bootloader()
+        except Exception as e:
+            logging.error("Error jumping to bootloader, this is likely the motor rebooting before a connection could be closed: {}".format(e))
+
 
 
     def set_rpm(self, new_rpm):
@@ -304,9 +317,14 @@ class VESC(object):
     def fw_jump_to_bootloader(self):
         """
         Jump to bootloader
+        set number of read bytes to None as we don't expect a response
         """
         msg = JumpToBootloader()
-        return self.write(encode_request(msg), num_read_bytes=msg._recv_full_msg_size)
+
+        #stop heartbeat, as we are about to reset the device
+        self.stop_heartbeat()
+
+        return self.write(encode_request(msg), num_read_bytes=None)
 
     def send_terminal_cmd(self, cmd):
         """
