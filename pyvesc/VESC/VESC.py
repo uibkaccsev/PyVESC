@@ -168,14 +168,15 @@ class VESC(object):
         logging.debug("Data response: {}".format(msg_payload))
         return response
 
-    def update_firmware(self, firmware):
+    def update_firmware(self, firmware, progress_callback=None):
 
         logging.info("Erasing")
 
         erase_res = self.fw_erase_new_app(firmware.size)
         if erase_res.erase_new_app_result != 1:
             logging.error("Erase failed")
-            return
+            progress_callback("Erase Failed")
+            return False
 
         logging.info("Sending firmware")
 
@@ -200,7 +201,8 @@ class VESC(object):
                 if fw_result.write_new_app_result != 1 or fw_result.write_new_app_result is None:
                     logging.error("Write failed")
                     logging.error(fw_result)
-                    return
+                    progress_callback("Flashing Failed")
+                    return False
 
             offset += firmware.chunk_size
 
@@ -208,6 +210,8 @@ class VESC(object):
             if time.time() - time_since_last_progress_print > UPDATE_INTERVAL_SECS:
                 time_since_last_progress_print = time.time()
                 logging.info("Progress: {:.2f}%, Size: {}/{}kB".format(firmware.get_progress(offset), offset, firmware.original_size))
+                if progress_callback is not None:
+                    progress_callback(f"{int(firmware.get_progress(offset))}% complete")
 
             # stream updates quickly to stdout 
             print("\rProgress: {:.2f}%, Size: {}kB, to be written to {}".format(firmware.get_progress(offset), offset, offset+firmware.chunk_size), end='\r')
@@ -217,6 +221,9 @@ class VESC(object):
             self.fw_jump_to_bootloader()
         except Exception as e:
             logging.error("Error jumping to bootloader, this is likely the motor rebooting before a connection could be closed: {}".format(e))
+
+        progress_callback("Flashing Successful")
+        return True
 
 
 
