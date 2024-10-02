@@ -60,9 +60,13 @@ class VESC(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop_heartbeat()
-        if self.serial_port.is_open:
-            self.serial_port.flush()
-            self.serial_port.close()
+        try:
+            if self.serial_port.is_open:
+                self.serial_port.flush()
+                self.serial_port.close()
+        except Exception as e:
+            logging.error("Error closing serial port: ", e)
+            logging.error("This is likely due to the motor being disconnected before the connection could be closed.")
 
     def _message_monitor(self):
         """
@@ -211,18 +215,18 @@ class VESC(object):
                 time_since_last_progress_print = time.time()
                 logging.info("Progress: {:.2f}%, Size: {}/{}kB".format(firmware.get_progress(offset), offset, firmware.original_size))
                 if progress_callback is not None:
-                    progress_callback(f"{int(firmware.get_progress(offset))}% complete")
+                    progress_callback(int(firmware.get_progress(offset)))
 
-            # stream updates quickly to stdout 
+            # stream updates quickly to stdout
             print("\rProgress: {:.2f}%, Size: {}kB, to be written to {}".format(firmware.get_progress(offset), offset, offset+firmware.chunk_size), end='\r')
             firmware.clear_chunk()
+
         logging.info("Firmware upload complete, jumping to bootloader.")
         try:
             self.fw_jump_to_bootloader()
         except Exception as e:
             logging.error("Error jumping to bootloader, this is likely the motor rebooting before a connection could be closed: {}".format(e))
 
-        progress_callback("Flashing Successful")
         return True
 
 
