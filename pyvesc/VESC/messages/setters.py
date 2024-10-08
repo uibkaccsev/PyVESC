@@ -14,6 +14,32 @@ class SetDutyCycle(metaclass=VESCMessage):
     ]
 
 
+class SetMotorConfig(metaclass=VESCMessage):
+    """
+    Set the motor configuration values
+
+    Sends a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_SET_MCCONF
+
+    send_fields = [
+        ('mcconf', 's', -1)
+    ]
+
+
+class SetAppConfig(metaclass=VESCMessage):
+    """
+    Set the app configuration values
+
+    Sends a bytestring, so scalar is set to -1 to represent this
+    """
+    id = VedderCmd.COMM_SET_APPCONF
+
+    send_fields = [
+        ('appconf', 's', -1)
+    ]
+
+
 class SetRPM(metaclass=VESCMessage):
     """ Set the RPM.
 
@@ -49,7 +75,7 @@ class SetCurrentBrake(metaclass=VESCMessage):
 
 class SetPosition(metaclass=VESCMessage):
     """Set the rotor angle based off of an encoder or sensor
-    
+
     :ivar pos: Value to set the current position or angle to.
     """
     id = VedderCmd.COMM_SET_POS
@@ -59,26 +85,25 @@ class SetPosition(metaclass=VESCMessage):
 
 
 class SetRotorPositionMode(metaclass=VESCMessage):
-     """Sets the rotor position feedback mode.
+    """ Sets the rotor position feedback mode.
+    It is reccomended to use the defined modes as below:
+        * DISP_POS_OFF
+        * DISP_POS_MODE_ENCODER
+        * DISP_POS_MODE_PID_POS
+        * DISP_POS_MODE_PID_POS_ERROR
 
-     It is reccomended to use the defined modes as below:
-         * DISP_POS_OFF
-         * DISP_POS_MODE_ENCODER
-         * DISP_POS_MODE_PID_POS
-         * DISP_POS_MODE_PID_POS_ERROR
+    :ivar pos_mode: Value of the mode
+    """
 
-     :ivar pos_mode: Value of the mode
-     """
+    DISP_POS_OFF = 0
+    DISP_POS_MODE_ENCODER = 3
+    DISP_POS_MODE_PID_POS = 4
+    DISP_POS_MODE_PID_POS_ERROR = 5
 
-     DISP_POS_OFF = 0
-     DISP_POS_MODE_ENCODER = 3
-     DISP_POS_MODE_PID_POS = 4
-     DISP_POS_MODE_PID_POS_ERROR = 5
-
-     id = VedderCmd.COMM_SET_DETECT
-     send_fields = [
-         ('pos_mode', 'b')
-     ]
+    id = VedderCmd.COMM_SET_DETECT
+    send_fields = [
+        ('pos_mode', 'b')
+    ]
 
 
 class SetServoPosition(metaclass=VESCMessage):
@@ -110,10 +135,10 @@ class EraseNewApp(metaclass=VESCMessage):
     id = VedderCmd.COMM_ERASE_NEW_APP
     send_fields = [
         ('data', 'I')
-            ]
+    ]
     recv_fields = [
         ('erase_new_app_result', 'b', 0)
-            ]
+    ]
 
 
 class WriteNewAppData(metaclass=VESCMessage):
@@ -124,11 +149,11 @@ class WriteNewAppData(metaclass=VESCMessage):
     send_fields = [
         ('offset', 'I'),
         ('data', f'{384}s')
-            ]
+    ]
     recv_fields = [
         ('write_new_app_result', '?', 0),
         ('new_app_offset', 'I', 0)
-            ]
+    ]
 
 
 class WriteNewAppDataLZO(metaclass=VESCMessage):
@@ -142,11 +167,12 @@ class WriteNewAppDataLZO(metaclass=VESCMessage):
     send_fields = [
         ('offset', 'I'),
         ('data', f'{384}s')
-            ]
+    ]
     recv_fields = [
         ('write_new_app_result', '?', 0),
         ('new_app_offset', 'I', 0)
-            ]
+    ]
+
 
 class JumpToBootloader(metaclass=VESCMessage):
     """Jump to the bootloader, get response
@@ -156,22 +182,25 @@ class JumpToBootloader(metaclass=VESCMessage):
     send_fields = []
     recv_fields = []
 
+
 class TerminalCmd(metaclass=VESCMessage):
     """Send a terminal command to the VESC, get response"""
     id = VedderCmd.COMM_TERMINAL_CMD
     send_fields = [
         ('cmd', 's')
-            ]
+    ]
     recv_fields = [
         ('terminal_cmd_result', 's')
-            ]
+    ]
+
 
 class TerminalPrint(metaclass=VESCMessage):
     """Print a message to the terminal"""
     id = VedderCmd.COMM_PRINT
     recv_fields = [
         ('msg', 's')
-            ]
+    ]
+
 
 # statically save this message because it does not need to be recalculated
 alive_msg = encode(Alive())

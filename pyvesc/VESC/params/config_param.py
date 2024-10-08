@@ -186,7 +186,7 @@ class Param_Double32(Param_Int32):
 
     def deserialise(self, buffer):
         super().deserialise(buffer)
-        self.value = float(self.value) # Convert to float
+        self.value = float(self.value)  # Convert to float
 
     def serialise(self):
         rounded = round(self.value)

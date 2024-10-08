@@ -163,9 +163,9 @@ class TestPacket(TestCase):
         # make a good packet
         test_payload = b'Te!'
         good_packet = b'\x02\x03Te!B\x92\x03'
-        packet_to_recover = b'\x02\x04!\xe1$ 8\xbb\x03' # goal is to recover this packet
+        packet_to_recover = b'\x02\x04!\xe1$ 8\xbb\x03'  # goal is to recover this packet
         payload_to_recover = b'!\xe1$ '
-        after_goal = b'\x05\x09\x01' # mimic another corrupt packet after
+        after_goal = b'\x05\x09\x01'  # mimic another corrupt packet after
         corrupt_packets = []
         # corrupt first byte
         corrupt = b'\x01\x03Te!B\x92\x03'
@@ -201,6 +201,7 @@ class TestPacket(TestCase):
         out_buffer = in_buffer[consumed:]
         self.assertEqual(parsed, test_payload)
         self.assertEqual(out_buffer, b'')
+
 
 class TestMsg(TestCase):
     def setUp(self):
@@ -351,7 +352,7 @@ class TestMsg(TestCase):
         # try to fill a message with the wrong number of arguments
         caught = False
         try:
-            testmessage1 = testMsg1(2, 4, 5) # should be 2 args
+            testmessage1 = testMsg1(2, 4, 5)  # should be 2 args
         except AttributeError as e:
             caught = True
         self.assertTrue(caught)

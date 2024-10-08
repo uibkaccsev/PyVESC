@@ -7,7 +7,7 @@ class TestConfigParam(unittest.TestCase):
 
     num_tests = 20
 
-    def assert_serialization(self, param_class, value, round_result=False, assert_places=None): 
+    def assert_serialization(self, param_class, value, round_result=False, assert_places=None):
         # Test serialization
         param = param_class("test_param_serialised", value=value)
         serialised = param.serialise()
@@ -77,4 +77,3 @@ class TestConfigParam(unittest.TestCase):
         for _ in range(self.num_tests):
             VALUE = random.uniform(-100000.0, 100000.0)
             self.assert_serialization(Param_Double32_Auto, VALUE, assert_places=1)
-

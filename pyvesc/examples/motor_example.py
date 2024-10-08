@@ -1,10 +1,8 @@
 from pyvesc import VESC, Firmware
 from pyvesc.VESC.params import confgenerator
-from pyvesc.VESC.params import *
 import time
 import logging
 import argparse
-import copy
 import json
 
 logger = logging.getLogger(__name__)
@@ -34,18 +32,19 @@ def run_motor_as_object(serial_port):
     # sweep servo through full range
     for i in range(100):
         time.sleep(0.01)
-        motor.set_servo(i/100)
+        motor.set_servo(i / 100)
 
     # IMPORTANT: YOU MUST STOP THE HEARTBEAT IF IT IS RUNNING BEFORE IT GOES OUT OF SCOPE. Otherwise, it will not
     #            clean-up properly.
     motor.stop_heartbeat()
+
 
 def time_get_values(serial_port):
     with VESC(serial_port=serial_port) as motor:
         start = time.time()
         motor.get_measurements()
         stop = time.time()
-        print("Getting values takes ", stop-start, "seconds.")
+        print("Getting values takes ", stop - start, "seconds.")
 
 
 def commands_example(port, firmware, compressed):
@@ -82,6 +81,7 @@ def commands_example(port, firmware, compressed):
 
             print(motor.send_terminal_cmd(user_in))
 
+
 def save_parameters(serial_port, save_file):
     with VESC(serial_port=serial_port) as motor:
         motor_config_bytes = motor.get_motor_configuration()
@@ -96,15 +96,14 @@ def save_parameters(serial_port, save_file):
 
         output = {"mcconfig": mcconfig_dict, "appconfig": appconfig_dict}
 
-
         # convert to json
         config_json = json.dumps(output, indent=4)
         print(config_json)
 
-
         # save the parameters to a file
         with open(save_file, 'wb') as f:
             f.write(config_json.encode('utf-8'))
+
 
 def load_parameters(serial_port, load_file):
     with VESC(serial_port=serial_port) as motor:
@@ -141,12 +140,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.save:
-        save_parameters(serial_port = args.port, save_file=args.save)
+        save_parameters(serial_port=args.port, save_file=args.save)
 
     if args.load:
-        load_parameters(serial_port = args.port, load_file=args.load)
+        load_parameters(serial_port=args.port, load_file=args.load)
 
-    #run_motor_using_with(args.port)
-    #run_motor_as_object(args.port)
-    #time_get_values(args.port)
+    # run_motor_using_with(args.port)
+    # run_motor_as_object(args.port)
+    # time_get_values(args.port)
     commands_example(args.port, args.firmware, args.compressed)

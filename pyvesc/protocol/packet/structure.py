@@ -54,7 +54,7 @@ class Footer(collections.namedtuple('Footer', ['crc', 'terminator'])):
     """
     Footer of a VESC packet.
     """
-    TERMINATOR = 0x3 # Terminator character
+    TERMINATOR = 0x3  # Terminator character
 
     @staticmethod
     def parse(buffer, header):

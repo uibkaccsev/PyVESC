@@ -2,6 +2,7 @@ import struct
 
 STRING_MAX_LEN = 5000
 
+
 class VESCMessage(type):
     """ Metaclass for VESC messages.
 
@@ -50,7 +51,7 @@ class VESCMessage(type):
         if hasattr(cls, 'send_fields'):
             for field, idx in zip(cls.send_fields, range(0, len(cls.send_fields))):
                 cls._send_field_names.append(field[0])
-                
+
                 # apply scalar if defined
                 if len(field) >= 3:
                     cls._send_field_scalars.append(field[2])
@@ -62,11 +63,10 @@ class VESCMessage(type):
                 else:
                     cls._send_field_formats.append(field[1])
 
-
             # calc size, iterating through each format to eliminate padding
             msg_size = 0
             for fmt in cls._recv_field_formats:
-                msg_size+=struct.calcsize(fmt)
+                msg_size += struct.calcsize(fmt)
             cls._recv_full_msg_size = msg_size
 
             # check that at most 1 field is a string
@@ -76,13 +76,12 @@ class VESCMessage(type):
             if 'p' in cls._send_field_formats:
                 raise TypeError("Field with format character 'p' detected. For string field use 's'.")
 
-
         # format the fields to receive, if we didn't define any - don't make any
         # TODO: this is duplicated code, should be refactored
         if hasattr(cls, 'recv_fields'):
             for field, idx in zip(cls.recv_fields, range(0, len(cls.recv_fields))):
                 cls._recv_field_names.append(field[0])
-                
+
                 # apply scalar if defined
                 if len(field) >= 3:
                     cls._recv_field_scalars.append(field[2])
@@ -97,9 +96,9 @@ class VESCMessage(type):
             msg_size = 0
             for fmt in cls._recv_field_formats:
                 if '%us' in fmt:
-                    msg_size+=STRING_MAX_LEN
+                    msg_size += STRING_MAX_LEN
                 else:
-                    msg_size+=struct.calcsize(fmt)
+                    msg_size += struct.calcsize(fmt)
             cls._recv_full_msg_size = msg_size
 
             # check that at most 1 field is a string
@@ -132,8 +131,6 @@ class VESCMessage(type):
                 field_to_unpack = 'recv_fields'
             else:
                 field_to_unpack = 'send_fields'
-        
-
 
         if field_to_unpack == 'send_fields':
             fields = cls.send_fields
@@ -141,7 +138,7 @@ class VESCMessage(type):
         else:
             fields = cls.recv_fields
             field_names = cls._recv_field_names
-            
+
         if args:
             if len(args) != len(fields):
                 raise AttributeError("Expected %u arguments, received %u" % (len(fields), len(args)))
@@ -187,7 +184,7 @@ class VESCMessage(type):
             for k, field in enumerate(data):
                 try:
                     if field_scalars[k] != 0:
-                        data[k] = data[k]/field_scalars[k]
+                        data[k] = data[k] / field_scalars[k]
                 except (TypeError, IndexError) as e:
                     print("Error encountered on field " + fields[k][0])
                     print(e)
@@ -195,16 +192,16 @@ class VESCMessage(type):
         msg = msg_type(*data, unpack_send_fields=unpack_send_fields)
         if not (string_field is None):
             string_field_name = field_names[string_field]
-            
+
             # if scalar is -1, we do not interpret the string as ascii, instead as a bytestring
             if len(field_scalars) > 0 and field_scalars[string_field] is -1:
                 setattr(msg,
-                    string_field_name,
-                    getattr(msg, string_field_name))
+                        string_field_name,
+                        getattr(msg, string_field_name))
             else:
                 setattr(msg,
-                    string_field_name,
-                    getattr(msg, string_field_name).decode('ascii'))
+                        string_field_name,
+                        getattr(msg, string_field_name).decode('ascii'))
 
         return msg
 
@@ -259,8 +256,7 @@ class VESCMessage(type):
                 field_values[string_field] = field_values[string_field].encode('ascii')
             values = ((instance.id,) + tuple(field_values))
             if instance.can_id is not None:
-                fmt = VESCMessage._endian_fmt + VESCMessage._can_id_fmt + VESCMessage._id_fmt\
-                      + (fmt % (string_length))
+                fmt = VESCMessage._endian_fmt + VESCMessage._can_id_fmt + VESCMessage._id_fmt + (fmt % (string_length))
                 values = (VESCMessage._comm_forward_can, instance.can_id) + values
             else:
                 fmt = VESCMessage._endian_fmt + VESCMessage._id_fmt + (field_formats % (string_length))

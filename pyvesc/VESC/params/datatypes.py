@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class VESC_FMT(Enum):
     VESC_TX_UNDEFINED = 0
     VESC_TX_UINT8 = 1

@@ -45,10 +45,9 @@ def decode(buffer, recv=True):
             field = 'recv_fields'
         else:
             field = 'send_fields'
-        
         if hasattr(unpacked_messages[0], field):
             field_list = getattr(unpacked_messages[0], field)
-            for i,f in enumerate(field_list):
+            for i, f in enumerate(field_list):
                 if 's' in f[1]:  # f1 is the formats (there is a '[send/recv]_field_formats attr, but cbf getting it)
                     # there is a string, get the field name
                     string_field_name = f[0]
@@ -56,11 +55,10 @@ def decode(buffer, recv=True):
                     if len(f) > 2:
                         string_field_scalar = field_list[i][2]
 
-
         if string_field_name is not None:
             # check if string is an ascii or bytes by looking at the string scalar. -1 is bytestring, None is ascii
             if string_field_scalar is None:
-                message_res = "".join([getattr(unpacked_message, string_field_name)+"\n" for unpacked_message in unpacked_messages])
+                message_res = "".join([getattr(unpacked_message, string_field_name) + "\n" for unpacked_message in unpacked_messages])
             elif string_field_scalar == -1:
                 message_res = b"".join([getattr(unpacked_message, string_field_name) for unpacked_message in unpacked_messages])
 
@@ -69,7 +67,7 @@ def decode(buffer, recv=True):
                 message_res = unpacked_messages[0]
             else:
                 raise ValueError("Don't currently support multiple message results from one field that aren't strings")
-    
+
         return message_res, consumed_total, msg_payload_total
     else:
         return None, consumed_total, msg_payload_total

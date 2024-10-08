@@ -42,7 +42,6 @@ def crc16(data):
     return cksum
 
 
-
 class Firmware:
     def __init__(self, filepath, lzss=False):
         self.chunk_size = 384
@@ -68,7 +67,6 @@ class Firmware:
             self.fw_bytes = f.read()
         self.original_size = len(self.fw_bytes)
         self.size = self.original_size
-
 
     def process(self):
         """
@@ -113,7 +111,7 @@ class Firmware:
 
         # pad chunk if smaller than send packet
         if len(self.chunk) < self.chunk_size:
-            self.chunk += b'\xFF'*(self.chunk_size-len(self.chunk))
+            self.chunk += b'\xFF' * (self.chunk_size - len(self.chunk))
 
         return self.chunk
 
@@ -132,4 +130,4 @@ class Firmware:
         :param offset: current offset
         :return: progress in percentage
         """
-        return 100*(offset/self.original_size)
+        return 100 * (offset / self.original_size)
