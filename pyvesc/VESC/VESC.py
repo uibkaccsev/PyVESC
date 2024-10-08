@@ -152,10 +152,8 @@ class VESC(object):
                             break
 
                 # read in data gradually to ensure buffer doesn't fill
-                try:
-                    payload += self.serial_port.read(self.serial_port.in_waiting)
-                except Exception as e:
-                    logging.error("Error reading from serial port: ", e)
+                payload += self.serial_port.read(self.serial_port.in_waiting)
+
                 last_payload_len = len(payload)
 
                 # if we are just probing the serial line, exit early as we are not waiting for a response
