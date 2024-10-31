@@ -360,3 +360,11 @@ class VESC(object):
         msg = SetAppConfig(data)
         res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
         return res
+
+    def get_values(self):
+        """
+        Get the internal sensor data
+        """
+        msg = GetValues()
+        res = self.write(encode_request(msg), num_read_bytes=msg._recv_full_msg_size)
+        return res

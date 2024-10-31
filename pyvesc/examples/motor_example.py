@@ -1,5 +1,6 @@
-from pyvesc import VESC, Firmware
-from pyvesc.VESC.params import confgenerator
+from pyvesc.firmware import Firmware
+from pyvesc.VESC import VESC
+from pyvesc.params import confgenerator
 import time
 import logging
 import argparse
@@ -78,6 +79,15 @@ def commands_example(port, firmware, compressed):
                 erase_res = motor.fw_erase_new_app(fw.size)
                 print("Erase status:", erase_res.erase_new_app_result)
                 break
+
+            if user_in == "log":
+                log_start = time.time()
+                LOG_TIME = 10
+                while time.time() - log_start < LOG_TIME:
+                    vals = motor.get_values()
+                    time.sleep(0.1)
+                break
+
 
             print(motor.send_terminal_cmd(user_in))
 
