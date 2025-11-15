@@ -72,7 +72,7 @@ def decode(buffer, recv=True):
     else:
         return None, consumed_total, msg_payload_total
 
-
+  
 def encode(msg):
     """
     Encodes a PyVESC message to a packet. This packet is a valid VESC packet and

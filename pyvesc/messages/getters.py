@@ -88,7 +88,7 @@ class GetValues(metaclass=VESCMessage):
         ('mc_fault_code', 'c', 0),
         ('pid_pos_now', 'i', 1000000),
         ('app_controller_id', 'c', 0),
-        ('time_ms', 'i', 1),
+        #('time_ms', 'i', 1),
     ]
 
 

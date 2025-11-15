@@ -1,7 +1,7 @@
 from .protocol.interface import encode_request, encode, decode
 from .messages.getters import GetVersion, GetMotorConfig, GetAppConfig, GetValues
 from .messages.setters import (
-    SetMotorConfig, SetAppConfig, SetRPM, SetCurrent, SetDutyCycle,
+    SetMotorConfig, SetAppConfig, SetRPM, SetCurrent, SetCurrentBrake, SetDutyCycle,
     SetServoPosition, EraseNewApp, WriteNewAppData, WriteNewAppDataLZO,
     JumpToBootloader, TerminalCmd, SetRotorPositionMode, Reboot, alive_msg
 )
@@ -341,11 +341,14 @@ class VESC(object):
         res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
         return res
 
+    # HIER NOCH SACHEN ÄNDERN!!! ICH HAB WAS VERÄNDERT
     def set_motor_configuration(self, data):
         """
         Set the motor configuration parameters
         """
         msg = SetMotorConfig(data)
+        #test = self.encode(msg)
+        #print(f"Encoded message: {test}")
         res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
         return res
 
@@ -364,3 +367,10 @@ class VESC(object):
         msg = SetAppConfig(data)
         res = self.write(encode(msg), num_read_bytes=msg._recv_full_msg_size, expect_string=True)
         return res
+    
+    def set_current_brake(self, brake_current):
+        """
+        Set the current brake value
+        :param brake_current: new brake current in milli-amps
+        """
+        self.write(encode(SetCurrentBrake(brake_current)))
